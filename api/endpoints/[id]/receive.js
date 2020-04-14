@@ -18,7 +18,7 @@ async function savePayload(req, res, next) {
         data: {
           body: req.input,
           endpoint: req.endpoint.ref.id,
-          secret: Boolean(req.endpoint.data.secret)
+          public: !req.endpoint.data.secret || Boolean(req.endpoint.data.public)
         }
       }
     )

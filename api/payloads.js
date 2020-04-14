@@ -6,8 +6,8 @@ module.exports = async (req, res) => {
       q.Map(
         q.Paginate(
           q.Match( // Public payloads only
-            q.Index('payloads_by_secret_status'),
-            false
+            q.Index('payloads_by_public_status'),
+            true
           )
         ),
         ref => q.Get(ref)
