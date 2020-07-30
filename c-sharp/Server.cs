@@ -19,6 +19,26 @@ namespace HttpListenerExample
         public static HttpListener listener;
         public static string url = "http://localhost:8000/";
 
+        public static byte[] ConvertHexStringToByteArray(string hexString)
+        {
+            byte[] data = new byte[hexString.Length / 2];
+            for (int index = 0; index < data.Length; index++)
+            {
+                string byteValue = hexString.Substring(index * 2, 2);
+                data[index] = byte.Parse(byteValue);
+            }
+
+            return data;
+        }
+
+        static bool ValidateSignature(HttpListenerRequest req, byte[] secret) {
+            string providedSignature = req.Headers.Get("X-Lapin-Signature");
+            byte[] providedSignatureBytes = ConvertHexStringToByteArray(providedSignature);
+
+            byte[] signature = Sign(secret, req.InputStream);
+            return providedSignatureBytes.SequenceEqual(signature);
+        }
+
         static byte[] Sign(byte[] key, Stream body) {
             HMACSHA256 hash = new HMACSHA256(key);
             byte[] signature = hash.ComputeHash(body);
@@ -38,12 +58,7 @@ namespace HttpListenerExample
 
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse resp = ctx.Response;
-
-                string providedSignature = req.Headers.Get("X-Lapin-Signature");
-                byte[] providedSignatureBytes = SoapHexBinary.Parse(providedSignature).Value;
-
-                byte[] signature = Sign(key, req.InputStream);
-                bool signatureOk = providedSignatureBytes.SequenceEqual(signature);
+                bool signatureOk = ValidateSignature(req, key);
                 byte[] data = Encoding.UTF8.GetBytes("{\"signature\": " + (signatureOk ? "true" : "false")   +"}");
                 resp.ContentType = "text/json";
                 resp.ContentEncoding = Encoding.UTF8;
@@ -65,6 +80,7 @@ namespace HttpListenerExample
             listener = new HttpListener();
             listener.Prefixes.Add(url);
             listener.Start();
+            string s = $"{true}";
             Console.WriteLine("Listening for connections on {0}", url);
 
             // Handle requests
